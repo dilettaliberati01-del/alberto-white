@@ -2,7 +2,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
-const { wordBank } = require('./data/gameData');
+const { words } = require('./data/gameData');
 
 const app = express();
 const server = http.createServer(app);
@@ -52,8 +52,6 @@ function pub(room) {
       connected: p.connected !== false,
     })),
     currentPlayerIndex: room.currentPlayerIndex,
-    category: room.category,
-    categoryName: room.categoryName,
     roundNumber: room.roundNumber,
     readyCount: room.players.filter(p => p.ready).length,
     votes: room.votes,
@@ -85,9 +83,6 @@ io.on('connection', (socket) => {
       phase: 'lobby',
       players: [{ id: socket.id, playerId, name, isHost: true, eliminated: false, ready: false, connected: true }],
       currentPlayerIndex: 0,
-      category: null,
-      categoryName: null,
-      secretWord: null,
       mrWhiteIds: [],
       mrWhiteNames: [],
       roundNumber: 1,
@@ -162,7 +157,7 @@ io.on('connection', (socket) => {
   });
 
   // ── START GAME ───────────────────────────────────────
-  socket.on('start-game', ({ roomCode, category }) => {
+  socket.on('start-game', ({ roomCode }) => {
     const room = rooms[roomCode];
     if (!room) return;
     const me = room.players.find(p => p.id === socket.id);
@@ -173,14 +168,8 @@ io.on('connection', (socket) => {
 
     if (room.players.length < 3) return socket.emit('error', { message: 'Servono almeno 3 giocatori connessi!' });
 
-    // Pick category
-    let catKey = category;
-    if (catKey === 'random') catKey = Object.keys(wordBank)[Math.floor(Math.random() * Object.keys(wordBank).length)];
-    const cat = wordBank[catKey];
-    if (!cat) return socket.emit('error', { message: 'Categoria non valida.' });
-
-    // Pick random secret word
-    const secretWord = cat.words[Math.floor(Math.random() * cat.words.length)];
+    // Pick random secret word from the flat array
+    const secretWord = words[Math.floor(Math.random() * words.length)];
 
     // Determine how many Mr. Whites (1 per 6 players, min 1)
     const n = room.players.length;
@@ -203,8 +192,6 @@ io.on('connection', (socket) => {
     room.secretWord = secretWord;
     room.mrWhiteIds   = room.players.filter(p => p.isMrWhite).map(p => p.id);
     room.mrWhiteNames = room.players.filter(p => p.isMrWhite).map(p => p.name);
-    room.category = catKey;
-    room.categoryName = cat.name;
     room.phase = 'word-reveal';
     room.currentPlayerIndex = 0;
     room.roundNumber = 1;
@@ -215,8 +202,7 @@ io.on('connection', (socket) => {
     room.players.forEach(p => {
       io.to(p.id).emit('your-word', {
         word: p.isMrWhite ? null : secretWord,
-        isMrWhite: p.isMrWhite,
-        categoryName: cat.name,
+        isMrWhite: p.isMrWhite
       });
     });
 
