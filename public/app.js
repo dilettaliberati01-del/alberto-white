@@ -119,14 +119,13 @@ socket.on('room-joined', ({ code }) => {
   setScreen('lobby');
 });
 
-socket.on('your-word', ({ word, isMrWhite, categoryName }) => {
+socket.on('your-word', ({ word, isMrWhite }) => {
   S.myWord       = word;
   S.isMrWhite    = isMrWhite;
   S.wordRevealed = false;
 
   $('flip-inner').classList.remove('flipped');
   hide('btn-ready');
-  $('word-cat').textContent = categoryName || '';
 
   setScreen('reveal');
 });
@@ -197,8 +196,7 @@ $('btn-leave-room')?.addEventListener('click', () => {
 });
 
 $('btn-start').addEventListener('click', () => {
-  const category = $('sel-cat').value;
-  socket.emit('start-game', { roomCode: S.roomCode, category });
+  socket.emit('start-game', { roomCode: S.roomCode });
 });
 
 // ─── WORD REVEAL ──────────────────────────────
