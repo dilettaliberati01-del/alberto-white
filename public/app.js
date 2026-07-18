@@ -365,10 +365,13 @@ function renderVoting(room) {
   $('lbl-votes').textContent    = votesDone;
   $('lbl-votes-of').textContent = active.length;
 
-  if (S.hasVoted || room.votes?.[S.myId]) {
+    if (S.hasVoted || room.votes?.[S.myId]) {
     S.hasVoted = true;
     hide('vote-list-wrap');
     show('voted-wait');
+    if (S.isHost) {
+      $('voted-wait').innerHTML = `<p class="mt-sm">Hai votato!</p><button class="btn btn-danger mt-sm" onclick="socket.emit('submit-vote', { roomCode: S.roomCode, targetId: 'FORCE' })">⏭️ Forza Risultato Ora</button>`;
+    }
     return;
   }
 
