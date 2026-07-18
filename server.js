@@ -47,9 +47,7 @@ function pub(room) {
       id: p.id,
       name: p.name,
       isHost: p.isHost,
-      eliminated: p.eliminated,
       ready: p.ready,
-      clues: p.clues,
       hasVoted: !!room.votes[p.id],
       connected: p.connected !== false,
     })),
@@ -85,7 +83,7 @@ io.on('connection', (socket) => {
     rooms[code] = {
       code,
       phase: 'lobby',
-      players: [{ id: socket.id, playerId, name, isHost: true, eliminated: false, ready: false, clues: [], connected: true }],
+      players: [{ id: socket.id, playerId, name, isHost: true, eliminated: false, ready: false, connected: true }],
       currentPlayerIndex: 0,
       category: null,
       categoryName: null,
@@ -131,7 +129,7 @@ io.on('connection', (socket) => {
     if (room.players.find(p => p.name.toLowerCase() === name.toLowerCase()))
                                        return socket.emit('error', { message: 'Nome già in uso!' });
 
-    room.players.push({ id: socket.id, playerId, name, isHost: false, eliminated: false, ready: false, clues: [], connected: true });
+    room.players.push({ id: socket.id, playerId, name, isHost: false, eliminated: false, ready: false, connected: true });
     socket.join(code);
     socket.emit('room-joined', { code });
     broadcast(code);
@@ -185,7 +183,6 @@ io.on('connection', (socket) => {
     room.players.forEach((p, i) => {
       p.eliminated = false;
       p.ready = false;
-      p.clues = [];
       p.isMrWhite = mrWhiteIndices.has(i);
     });
 
@@ -222,35 +219,9 @@ io.on('connection', (socket) => {
 
     me.ready = true;
 
-    // Auto-start clue phase when everyone is ready
+    // Auto-start discussion phase when everyone is ready
     if (room.players.every(p => p.ready)) {
-      room.phase = 'giving-clues';
-      room.currentPlayerIndex = 0;
-    }
-
-    broadcast(roomCode);
-  });
-
-  // ── SUBMIT CLUE ──────────────────────────────────────
-  socket.on('submit-clue', ({ roomCode, clue }) => {
-    const room = rooms[roomCode];
-    if (!room || room.phase !== 'giving-clues') return;
-
-    const active = room.players.filter(p => !p.eliminated);
-    if (room.currentPlayerIndex >= active.length) return;
-    const current = active[room.currentPlayerIndex];
-    if (current.id !== socket.id) return;
-
-    const text = (clue || '').trim().substring(0, 80);
-    if (!text) return;
-
-    current.clues.push({ text, round: room.roundNumber, playerName: current.name });
-
-    // Advance turn; wrap around = new round
-    room.currentPlayerIndex++;
-    if (room.currentPlayerIndex >= active.length) {
-      room.currentPlayerIndex = 0;
-      room.roundNumber++;
+      room.phase = 'discussion';
     }
 
     broadcast(roomCode);
@@ -259,7 +230,7 @@ io.on('connection', (socket) => {
   // ── START VOTING ─────────────────────────────────────
   socket.on('start-voting', ({ roomCode }) => {
     const room = rooms[roomCode];
-    if (!room || room.phase !== 'giving-clues') return;
+    if (!room || room.phase !== 'discussion') return;
     const me = room.players.find(p => p.id === socket.id);
     if (!me || !me.isHost) return;
 
@@ -401,9 +372,8 @@ io.on('connection', (socket) => {
     const me = room.players.find(p => p.id === socket.id);
     if (!me || !me.isHost) return;
 
-    room.phase = 'giving-clues';
+    room.phase = 'discussion';
     room.votes = {};
-    room.currentPlayerIndex = 0;
     broadcast(roomCode);
   });
 
@@ -418,7 +388,6 @@ io.on('connection', (socket) => {
     room.players.forEach(p => {
       p.eliminated = false;
       p.ready = false;
-      p.clues = [];
       p.isMrWhite = false;
     });
     room.secretWord = null;
