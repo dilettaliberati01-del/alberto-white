@@ -268,7 +268,7 @@ function routeRoomUpdate(room) {
   switch (room.phase) {
     case 'lobby':          renderLobby(room);              break;
     case 'word-reveal':    renderRevealStatus(room);        break;
-    case 'giving-clues':   renderClues(room);               break;
+    case 'discussion':     renderDiscussion(room);          break;
     case 'voting':         renderVoting(room);              break;
     case 'mr-white-guess': renderMrWhiteGuessScreen(room);  break;
     case 'game-over':      renderGameOver(room);            break;
