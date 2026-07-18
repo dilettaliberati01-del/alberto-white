@@ -452,7 +452,7 @@ io.on('connection', (socket) => {
           delete rooms[code];
           console.log(`[!] Room ${code} deleted (empty)`);
         }
-      }, 10000); // 10 seconds grace period
+      }, 900000); // 15 minutes grace period
     }
 
     broadcast(code);
