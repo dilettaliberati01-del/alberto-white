@@ -70,12 +70,13 @@ socket.on('connect',    () => { S.myId = socket.id; });
 socket.on('disconnect', () => toast('Connessione persa — ricarica la pagina', 'err'));
 socket.on('error',      ({ message }) => toast('❌ ' + message, 'err'));
 
-socket.on('room-created', ({ code, shareUrl }) => {
+socket.on('room-created', ({ code }) => {
   S.roomCode = code;
   S.isHost   = true;
-  S.shareUrl = shareUrl || '';
+  // Build share URL client-side so it always uses the real domain (works on Render, ngrok, localhost, etc.)
+  S.shareUrl = window.location.origin + '/?join=' + code;
   $('lbl-code').textContent = code;
-  renderShareLink(shareUrl, code);
+  renderShareLink(S.shareUrl, code);
   setScreen('lobby');
 });
 
