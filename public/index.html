@@ -77,9 +77,12 @@
 <div id="screen-lobby" class="screen">
   <div class="screen-bar">
     <h2>Sala d'attesa</h2>
-    <div class="code-pill">
-      <span class="code-val" id="lbl-code">----</span>
-      <button class="copy-btn" id="btn-copy" title="Copia link d'invito">🔗</button>
+    <div style="display:flex;gap:6px">
+      <div class="code-pill">
+        <span class="code-val" id="lbl-code">----</span>
+        <button class="copy-btn" id="btn-copy" title="Copia link d'invito">🔗</button>
+      </div>
+      <button class="btn-ghost" id="btn-leave-room" style="padding:4px 8px;font-size:.75rem;border-radius:8px">🚪 Esci</button>
     </div>
   </div>
 
@@ -93,7 +96,7 @@
   </div>
 
   <div class="card">
-    <div class="section-label">👥 Giocatori (<span id="lbl-nplayers">0</span>/12)</div>
+    <div class="section-label">👥 Giocatori (<span id="lbl-nplayers">0</span>/30)</div>
     <div class="mrwhite-info">
       🕵️ <strong><span id="lbl-mrwhite-count">1</span></strong> Mr. White su <span id="lbl-mrwhite-total">?</span> giocatori
     </div>
