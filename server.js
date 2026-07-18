@@ -146,6 +146,16 @@ io.on('connection', (socket) => {
       p.connected = true;
       socket.join(roomCode);
       socket.emit('session-restored', { code: roomCode });
+      
+      // Resend word if game is already active
+      if (room.phase !== 'lobby' && room.phase !== 'game-over') {
+        socket.emit('your-word', {
+          word: p.isMrWhite ? null : room.secretWord,
+          isMrWhite: p.isMrWhite,
+          categoryName: room.categoryName,
+        });
+      }
+      
       broadcast(roomCode);
       console.log(`[+] Restored session for ${p.name} in ${roomCode}`);
     }
@@ -157,7 +167,11 @@ io.on('connection', (socket) => {
     if (!room) return;
     const me = room.players.find(p => p.id === socket.id);
     if (!me || !me.isHost) return;
-    if (room.players.length < 3) return socket.emit('error', { message: 'Servono almeno 3 giocatori!' });
+
+    // Purge disconnected ghosts before assigning roles
+    room.players = room.players.filter(p => p.connected);
+
+    if (room.players.length < 3) return socket.emit('error', { message: 'Servono almeno 3 giocatori connessi!' });
 
     // Pick category
     let catKey = category;
@@ -219,8 +233,9 @@ io.on('connection', (socket) => {
 
     me.ready = true;
 
-    // Auto-start discussion phase when everyone is ready
-    if (room.players.every(p => p.ready)) {
+    // Auto-start discussion phase when everyone connected is ready
+    const connectedPlayers = room.players.filter(p => p.connected);
+    if (connectedPlayers.length > 0 && connectedPlayers.every(p => p.ready)) {
       room.phase = 'discussion';
     }
 
@@ -429,7 +444,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // ── DISCONNECT ───────────────────────────────────────
   socket.on('disconnect', () => {
     const r = getRoomOf(socket.id);
     if (!r) return;
@@ -439,6 +453,14 @@ io.on('connection', (socket) => {
     if (p) {
       p.connected = false;
       console.log(`[-] ${p.name} disconnected from ${code}`);
+    }
+
+    // If waiting for players to be ready, check if remaining connected players are ready
+    if (room.phase === 'word-reveal') {
+      const connectedPlayers = room.players.filter(p => p.connected);
+      if (connectedPlayers.length > 0 && connectedPlayers.every(p => p.ready)) {
+        room.phase = 'discussion';
+      }
     }
 
     // Clean up completely empty rooms after everyone is disconnected
