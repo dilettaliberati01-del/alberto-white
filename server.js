@@ -127,7 +127,7 @@ io.on('connection', (socket) => {
     }
 
     if (room.phase !== 'lobby')        return socket.emit('error', { message: 'Partita già iniziata!' });
-    if (room.players.length >= 12)     return socket.emit('error', { message: 'Stanza piena (max 12).' });
+    if (room.players.length >= 30)     return socket.emit('error', { message: 'Stanza piena (max 30).' });
     if (room.players.find(p => p.name.toLowerCase() === name.toLowerCase()))
                                        return socket.emit('error', { message: 'Nome già in uso!' });
 
@@ -431,6 +431,33 @@ io.on('connection', (socket) => {
     room.roundNumber = 1;
     room.winner = null;
     broadcast(roomCode);
+  });
+
+  // ── LEAVE ROOM (EXPLICIT) ────────────────────────────
+  socket.on('leave-room', () => {
+    const r = getRoomOf(socket.id);
+    if (!r) return;
+    const { code, room } = r;
+
+    const leaving = room.players.find(p => p.id === socket.id);
+    if (leaving) {
+      room.players = room.players.filter(p => p.id !== socket.id);
+      console.log(`[-] ${leaving.name} explicitly left ${code}`);
+
+      if (room.players.length === 0) { 
+        delete rooms[code]; 
+        return; 
+      }
+      if (leaving.isHost && room.players.length > 0) { 
+        room.players[0].isHost = true; 
+      }
+
+      // Fix currentPlayerIndex if out of range
+      const active = room.players.filter(p => !p.eliminated);
+      if (room.currentPlayerIndex >= active.length) room.currentPlayerIndex = 0;
+
+      broadcast(code);
+    }
   });
 
   // ── DISCONNECT ───────────────────────────────────────
