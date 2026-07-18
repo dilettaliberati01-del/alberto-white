@@ -164,48 +164,33 @@
   </div>
 </div>
 
-<!-- ═══════════ CLUES ═══════════ -->
-<div id="screen-clues" class="screen">
-  <div class="clues-top">
-    <span class="chip chip-purple" id="chip-round">Round 1</span>
-    <span class="chip chip-cyan"   id="chip-cat"></span>
-    <button class="chip chip-ghost hidden" id="btn-force-vote">🗳️ Vota</button>
+<!-- ═══════════ DISCUSSION ═══════════ -->
+<div id="screen-discussion" class="screen">
+  <div class="screen-bar">
+    <h2>🗣️ Discussione</h2>
+    <p class="muted small">A turno, dite a voce un indizio!</p>
   </div>
 
-  <!-- Current turn -->
-  <div class="turn-card" id="turn-card">
-    <div class="turn-sub" id="turn-sub">Sta parlando</div>
-    <div class="turn-name" id="turn-name">---</div>
-    <div class="timer-track"><div class="timer-fill" id="timer-fill"></div></div>
+  <div class="card text-center" style="margin-bottom: 16px;">
+    <p class="muted small mb-sm">La tua identità:</p>
+    <strong class="my-word-val" id="disc-my-word" style="font-size: 1.5rem; color: var(--amber);">---</strong>
   </div>
 
-  <!-- My input (only when my turn) -->
-  <div class="card hidden" id="my-clue-panel">
-    <div class="my-word-row">
-      <span class="muted small">La tua parola:</span>
-      <strong class="my-word-val" id="my-word-val">---</strong>
-    </div>
-    <input id="inp-clue" type="text" placeholder="Scrivi un indizio..." maxlength="80" autocomplete="off"/>
-    <button class="btn btn-primary mt-sm" id="btn-clue">Invia →</button>
+  <div class="card">
+    <div class="section-label">Giocatori ancora in gioco:</div>
+    <div id="disc-players-strip" class="players-strip" style="justify-content: center;"></div>
   </div>
 
   <!-- Host voting button -->
-  <div class="card hidden" id="host-vote-panel">
-    <button class="btn btn-danger" id="btn-vote-now">🗳️ Avvia Votazione</button>
+  <div class="card hidden" id="disc-host-panel" style="margin-top: 16px;">
+    <p class="muted small text-center mb-sm">Quando tutti hanno dato l'indizio, avvia il voto.</p>
+    <button class="btn btn-danger" id="btn-disc-vote-now">🗳️ Avvia Votazione</button>
   </div>
-
-  <!-- Players strip -->
-  <div class="card">
-    <div class="section-label">Turno giocatori</div>
-    <div id="players-strip" class="players-strip"></div>
-  </div>
-
-  <!-- Clue history -->
-  <div class="card">
-    <div class="section-label">📋 Indizi</div>
-    <div id="clue-log" class="clue-log">
-      <p class="muted small text-center">Nessun indizio ancora...</p>
-    </div>
+  
+  <!-- Guest waiting message -->
+  <div class="card text-center hidden" id="disc-guest-panel" style="margin-top: 16px;">
+    <div class="dots"><span></span><span></span><span></span></div>
+    <p class="mt-sm">L'Host avvierà la votazione a fine giro...</p>
   </div>
 </div>
 
