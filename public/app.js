@@ -16,10 +16,20 @@ if (!savedId) {
 const PLAYER_ID = savedId;
 
 // ─── STATE ──────────────────────────────────
+const urlParams = new URLSearchParams(window.location.search);
+const joinParam = urlParams.get('join')?.toUpperCase();
+let initialRoom = localStorage.getItem('aw_lastRoom') || '';
+
+if (joinParam && joinParam !== initialRoom) {
+  // If the user clicked a link for a different room, don't auto-reconnect to the old one.
+  initialRoom = '';
+  localStorage.removeItem('aw_lastRoom');
+}
+
 const S = {
   myId:         null,
   myName:       localStorage.getItem('aw_playerName') || '',
-  roomCode:     localStorage.getItem('aw_lastRoom') || '',
+  roomCode:     initialRoom,
   isHost:       false,
   myWord:       null,
   isMrWhite:    false,
@@ -174,6 +184,16 @@ $('btn-copy').addEventListener('click', () => {
   navigator.clipboard?.writeText(toCopy)
     .then(() => toast(S.shareUrl ? '🔗 Link copiato negli appunti!' : '📋 Codice copiato!', 'success'))
     .catch(() => toast(toCopy));
+});
+
+$('btn-leave-room')?.addEventListener('click', () => {
+  if (!confirm('Vuoi davvero uscire dalla stanza?')) return;
+  socket.emit('leave-room', { roomCode: S.roomCode });
+  localStorage.removeItem('aw_lastRoom');
+  S.roomCode = '';
+  S.isHost = false;
+  S.room = null;
+  setScreen('home');
 });
 
 $('btn-start').addEventListener('click', () => {
