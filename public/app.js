@@ -7,11 +7,19 @@
 
 const socket = io({ transports: ['websocket', 'polling'] });
 
+// ─── SESSION ──────────────────────────────────
+let savedId = localStorage.getItem('aw_playerId');
+if (!savedId) {
+  savedId = Math.random().toString(36).substring(2, 10);
+  localStorage.setItem('aw_playerId', savedId);
+}
+const PLAYER_ID = savedId;
+
 // ─── STATE ──────────────────────────────────
 const S = {
   myId:         null,
-  myName:       '',
-  roomCode:     '',
+  myName:       localStorage.getItem('aw_playerName') || '',
+  roomCode:     localStorage.getItem('aw_lastRoom') || '',
   isHost:       false,
   myWord:       null,
   isMrWhite:    false,
@@ -66,15 +74,29 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // ─── SOCKET EVENTS ──────────────────────────
-socket.on('connect',    () => { S.myId = socket.id; });
-socket.on('disconnect', () => toast('Connessione persa — ricarica la pagina', 'err'));
+socket.on('connect', () => { 
+  S.myId = socket.id; 
+  // Attempt to restore session if we had a room
+  if (S.roomCode) {
+    socket.emit('restore-session', { roomCode: S.roomCode, playerId: PLAYER_ID });
+  }
+});
+socket.on('disconnect', () => toast('Connessione persa — tentativo di riconnessione...', 'err'));
 socket.on('error',      ({ message }) => toast('❌ ' + message, 'err'));
+
+socket.on('session-restored', ({ code }) => {
+  S.roomCode = code;
+  S.shareUrl = window.location.origin + '/?join=' + code;
+  $('lbl-code').textContent = code;
+  renderShareLink(S.shareUrl, code);
+  toast('Riconnesso alla stanza!', 'success');
+});
 
 socket.on('room-created', ({ code }) => {
   S.roomCode = code;
   S.isHost   = true;
-  // Build share URL client-side so it always uses the real domain (works on Render, ngrok, localhost, etc.)
   S.shareUrl = window.location.origin + '/?join=' + code;
+  localStorage.setItem('aw_lastRoom', code);
   $('lbl-code').textContent = code;
   renderShareLink(S.shareUrl, code);
   setScreen('lobby');
@@ -82,6 +104,7 @@ socket.on('room-created', ({ code }) => {
 
 socket.on('room-joined', ({ code }) => {
   S.roomCode = code;
+  localStorage.setItem('aw_lastRoom', code);
   $('lbl-code').textContent = code;
   setScreen('lobby');
 });
@@ -108,18 +131,22 @@ socket.on('vote-result',           data => renderVoteResult(data));
 socket.on('mr-white-guess-result', data => renderGuessResult(data));
 
 // ─── HOME ────────────────────────────────────
+// Prefill name if we have it
+if (S.myName) $('inp-name').value = S.myName;
+
 $('btn-create').addEventListener('click', () => {
   const name = $('inp-name').value.trim();
   if (!name) return toast('Inserisci il tuo nome!', 'err');
   S.myName = name;
-  socket.emit('create-room', { playerName: name });
+  localStorage.setItem('aw_playerName', name);
+  socket.emit('create-room', { playerName: name, playerId: PLAYER_ID });
 });
 
 $('btn-join-show').addEventListener('click', () => {
   const name = $('inp-name').value.trim();
   if (!name) return toast('Inserisci il tuo nome!', 'err');
   S.myName = name;
-  // Pre-fill code if auto-detected
+  localStorage.setItem('aw_playerName', name);
   const prefill = $('inp-code-prefill')?.value;
   if (prefill) $('inp-code').value = prefill;
   setScreen('join');
@@ -138,7 +165,7 @@ $('inp-code').addEventListener('input',   e => { e.target.value = e.target.value
 function doJoin() {
   const code = $('inp-code').value.trim().toUpperCase();
   if (code.length < 4) return toast('Inserisci il codice di 4 caratteri!', 'err');
-  socket.emit('join-room', { roomCode: code, playerName: S.myName });
+  socket.emit('join-room', { roomCode: code, playerName: S.myName, playerId: PLAYER_ID });
 }
 
 // ─── LOBBY ────────────────────────────────────
@@ -253,9 +280,9 @@ function renderLobby(room) {
 
   const list = $('player-list');
   list.innerHTML = room.players.map(p => `
-    <div class="player-item">
+    <div class="player-item ${!p.connected ? 'offline' : ''}">
       <div class="p-ava">${ava(p.name)}</div>
-      <span class="p-name">${escHtml(p.name)}</span>
+      <span class="p-name">${escHtml(p.name)} ${!p.connected ? '(Disconnesso)' : ''}</span>
       <div style="display:flex;gap:4px;flex-wrap:wrap">
         ${p.id === S.myId  ? '<span class="badge badge-you">Tu</span>'   : ''}
         ${p.isHost         ? '<span class="badge badge-host">Host</span>' : ''}
