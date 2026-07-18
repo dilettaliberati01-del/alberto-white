@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+  <meta name="theme-color" content="#06060f"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <title>Alberto White 🧪</title>
+  <meta name="description" content="Mr. White dedicato ad Alberto — farmacologia, ratti e sfortuna universitaria."/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+<!-- Hidden field for auto-join code from URL -->
+<input type="hidden" id="inp-code-prefill"/>
+
+<!-- ═══════════ HOME ═══════════ -->
+<div id="screen-home" class="screen active">
+  <div class="home-glow"></div>
+  <div class="home-wrap">
+    <header class="home-header">
+      <div class="flask-icon">🧪</div>
+      <h1>Alberto White</h1>
+      <p class="home-tagline">Mr. White — Edizione Farmacologica</p>
+    </header>
+
+    <!-- Auto-join banner (shown if ?join= param in URL) -->
+    <div id="join-banner" class="join-banner hidden">
+      <span>🔗 Sei stato invitato! Codice stanza:</span>
+      <strong id="banner-code" class="banner-code">----</strong>
+      <span>Inserisci il tuo nome per unirti.</span>
+    </div>
+
+    <div class="card">
+      <label class="field-label" for="inp-name">Il tuo nome</label>
+      <input id="inp-name" type="text" placeholder="Es. Il Ratto da Lab" maxlength="20" autocomplete="off"/>
+      <div class="btn-row mt-sm">
+        <button class="btn btn-primary" id="btn-create">🏠 Crea Stanza</button>
+        <button class="btn btn-ghost"   id="btn-join-show">🚪 Unisciti</button>
+      </div>
+    </div>
+    <p class="home-quote">"Se hai sbagliato parola, sei Mr. White.<br>Se hai studiato l'argomento sbagliato, sei Alberto."</p>
+
+    <details class="rules-box">
+      <summary>📖 Regole del gioco</summary>
+      <ul>
+        <li>Tutti ricevono la stessa parola segreta — tranne <strong>Mr. White</strong> che non ne riceve nessuna.</li>
+        <li>A turno, ogni giocatore dice <strong>un solo indizio</strong> legato alla parola.</li>
+        <li>Dopo ogni giro si discute e si <strong>vota</strong> chi si sospetta essere Mr. White.</li>
+        <li>Se Mr. White viene eliminato, ha <strong>un tentativo</strong> per indovinare la parola segreta.</li>
+        <li><strong>Vincono i cittadini</strong> se eliminano Mr. White e lui sbaglia il guess.</li>
+        <li><strong>Vince Mr. White</strong> se sopravvive abbastanza o indovina la parola.</li>
+        <li class="rule-note">⚙️ Con 6+ giocatori ci sarà più di 1 Mr. White (1 ogni 6 giocatori).</li>
+      </ul>
+    </details>
+  </div>
+</div>
+
+<!-- ═══════════ JOIN ═══════════ -->
+<div id="screen-join" class="screen">
+  <div class="screen-bar">
+    <button class="btn-back" id="btn-back-join">← Indietro</button>
+    <h2>Unisciti</h2>
+  </div>
+  <div class="card">
+    <label class="field-label" for="inp-code">Codice stanza</label>
+    <input id="inp-code" type="text" placeholder="AB3X" maxlength="4" autocomplete="off"
+           style="text-transform:uppercase;letter-spacing:.5em;font-size:2.2rem;font-weight:900;text-align:center"/>
+    <button class="btn btn-primary mt-sm" id="btn-join">Entra →</button>
+  </div>
+</div>
+
+<!-- ═══════════ LOBBY ═══════════ -->
+<div id="screen-lobby" class="screen">
+  <div class="screen-bar">
+    <h2>Sala d'attesa</h2>
+    <div class="code-pill">
+      <span class="code-val" id="lbl-code">----</span>
+      <button class="copy-btn" id="btn-copy" title="Copia link d'invito">🔗</button>
+    </div>
+  </div>
+
+  <!-- Share box (host only) -->
+  <div id="share-box" class="share-box hidden">
+    <div class="share-label">🔗 Link di invito — condividilo con gli amici!</div>
+    <div class="share-url-wrap">
+      <span id="share-url-txt" class="share-url-txt"></span>
+    </div>
+    <p class="share-hint">Oppure condividi il codice: <strong id="lbl-code-2">----</strong></p>
+  </div>
+
+  <div class="card">
+    <div class="section-label">👥 Giocatori (<span id="lbl-nplayers">0</span>/12)</div>
+    <div class="mrwhite-info">
+      🕵️ <strong><span id="lbl-mrwhite-count">1</span></strong> Mr. White su <span id="lbl-mrwhite-total">?</span> giocatori
+    </div>
+    <div id="player-list" class="player-list"></div>
+  </div>
+
+  <!-- HOST panel -->
+  <div id="host-panel" class="card hidden">
+    <div class="section-label">⚙️ Impostazioni partita</div>
+    <label class="field-label" for="sel-cat">Categoria di parole</label>
+    <select id="sel-cat">
+      <option value="random">🎲 Casuale</option>
+      <option value="universita">🎓 Università &amp; Esami</option>
+      <option value="farmacologia">💊 Farmacologia</option>
+      <option value="chimica">⚗️ Chimica Organica</option>
+      <option value="laboratorio">🔬 Laboratorio &amp; Ricerca</option>
+      <option value="ratti">🐀 Ratti &amp; Neuroscienze</option>
+      <option value="dottorato">📚 Dottorato &amp; Carriera</option>
+      <option value="sfortuna">😱 Sfortuna Universitaria</option>
+      <option value="bassano">🏘️ Bassano Romano</option>
+      <option value="dialetto">🗣️ Dialetto &amp; Modi di Dire</option>
+      <option value="alberto">👨‍🔬 La Vita di Alberto</option>
+    </select>
+    <button class="btn btn-primary mt-sm" id="btn-start">🚀 Inizia Partita!</button>
+  </div>
+
+  <!-- GUEST panel -->
+  <div id="guest-panel" class="card text-center hidden">
+    <div class="dots"><span></span><span></span><span></span></div>
+    <p class="mt-sm">In attesa che l'host avvii...</p>
+    <p class="muted small">"Il professore arriva quando vuole lui."</p>
+  </div>
+</div>
+
+<!-- ═══════════ WORD REVEAL ═══════════ -->
+<div id="screen-reveal" class="screen">
+  <div class="screen-bar">
+    <h2>La tua parola segreta</h2>
+    <p class="muted small">⚠️ Solo per i tuoi occhi!</p>
+  </div>
+
+  <div id="flip-wrap" class="flip-wrap">
+    <div id="flip-inner" class="flip-inner">
+      <!-- FRONT -->
+      <div class="flip-face flip-front">
+        <div class="tap-icon">👁️</div>
+        <p class="tap-label">Tocca per rivelare</p>
+        <p class="muted small">Assicurati che nessuno guardi</p>
+      </div>
+      <!-- BACK -->
+      <div class="flip-face flip-back">
+        <div class="word-cat" id="word-cat"></div>
+        <div class="word-big" id="word-big"></div>
+        <div class="word-role" id="word-role"></div>
+        <p class="word-hint" id="word-hint"></p>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn btn-success hidden" id="btn-ready">✅ Ho visto — Sono pronto!</button>
+
+  <div class="card text-center" id="ready-bar">
+    <p>Pronti: <strong id="lbl-ready">0</strong> / <strong id="lbl-ready-of">0</strong></p>
+    <div class="prog-track"><div class="prog-fill" id="prog-fill"></div></div>
+  </div>
+</div>
+
+<!-- ═══════════ CLUES ═══════════ -->
+<div id="screen-clues" class="screen">
+  <div class="clues-top">
+    <span class="chip chip-purple" id="chip-round">Round 1</span>
+    <span class="chip chip-cyan"   id="chip-cat"></span>
+    <button class="chip chip-ghost hidden" id="btn-force-vote">🗳️ Vota</button>
+  </div>
+
+  <!-- Current turn -->
+  <div class="turn-card" id="turn-card">
+    <div class="turn-sub" id="turn-sub">Sta parlando</div>
+    <div class="turn-name" id="turn-name">---</div>
+    <div class="timer-track"><div class="timer-fill" id="timer-fill"></div></div>
+  </div>
+
+  <!-- My input (only when my turn) -->
+  <div class="card hidden" id="my-clue-panel">
+    <div class="my-word-row">
+      <span class="muted small">La tua parola:</span>
+      <strong class="my-word-val" id="my-word-val">---</strong>
+    </div>
+    <input id="inp-clue" type="text" placeholder="Scrivi un indizio..." maxlength="80" autocomplete="off"/>
+    <button class="btn btn-primary mt-sm" id="btn-clue">Invia →</button>
+  </div>
+
+  <!-- Host voting button -->
+  <div class="card hidden" id="host-vote-panel">
+    <button class="btn btn-danger" id="btn-vote-now">🗳️ Avvia Votazione</button>
+  </div>
+
+  <!-- Players strip -->
+  <div class="card">
+    <div class="section-label">Turno giocatori</div>
+    <div id="players-strip" class="players-strip"></div>
+  </div>
+
+  <!-- Clue history -->
+  <div class="card">
+    <div class="section-label">📋 Indizi</div>
+    <div id="clue-log" class="clue-log">
+      <p class="muted small text-center">Nessun indizio ancora...</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ VOTING ═══════════ -->
+<div id="screen-voting" class="screen">
+  <div class="screen-bar">
+    <h2>🗳️ Chi è Mr. White?</h2>
+    <p class="muted small">Discutete, poi votate!</p>
+  </div>
+
+  <div class="vote-progress card">
+    Voti raccolti: <strong id="lbl-votes">0</strong> / <strong id="lbl-votes-of">0</strong>
+  </div>
+
+  <div id="vote-list-wrap">
+    <div id="vote-list" class="vote-list"></div>
+  </div>
+
+  <div class="card text-center hidden" id="voted-wait">
+    <div class="dots"><span></span><span></span><span></span></div>
+    <p class="mt-sm">Hai votato! In attesa degli altri...</p>
+  </div>
+</div>
+
+<!-- ═══════════ VOTE RESULT ═══════════ -->
+<div id="screen-vote-result" class="screen">
+  <div id="vr-content"></div>
+  <div class="card hidden" id="continue-panel">
+    <button class="btn btn-primary" id="btn-continue">▶️ Continua la Partita</button>
+  </div>
+</div>
+
+<!-- ═══════════ MR. WHITE GUESS ═══════════ -->
+<div id="screen-guess" class="screen">
+  <div class="screen-bar">
+    <h2>🕵️ Tentativo di Mr. White</h2>
+  </div>
+
+  <div class="card text-center">
+    <p><strong id="guess-name">---</strong> è stato eliminato — era Mr. White!</p>
+    <p class="muted small mt-sm">Ha un'ultima chance per indovinare la parola segreta...</p>
+  </div>
+
+  <!-- Only shown to Mr. White -->
+  <div class="card hidden" id="guess-input-panel">
+    <p class="text-center">Indovina la parola segreta per vincere!</p>
+    <input id="inp-guess" type="text" placeholder="La parola segreta è..." maxlength="60" autocomplete="off" class="mt-sm"/>
+    <button class="btn btn-warning mt-sm" id="btn-guess">💡 Indovina!</button>
+  </div>
+
+  <!-- Shown to others -->
+  <div class="card text-center hidden" id="guess-wait">
+    <div class="dots"><span></span><span></span><span></span></div>
+    <p class="mt-sm">Mr. White sta indovinando...</p>
+    <p class="muted small">"Il silenzio prima della risposta."</p>
+  </div>
+</div>
+
+<!-- ═══════════ GAME OVER ═══════════ -->
+<div id="screen-gameover" class="screen">
+  <div id="go-content"></div>
+  <div class="card">
+    <button class="btn btn-primary hidden" id="btn-newgame">🔄 Nuova Partita</button>
+    <p class="muted small text-center hidden" id="lbl-wait-host">In attesa dell'host...</p>
+  </div>
+</div>
+
+<!-- ═══════════ TOAST ═══════════ -->
+<div id="toasts"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
