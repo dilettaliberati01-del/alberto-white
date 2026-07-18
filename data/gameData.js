@@ -4,7 +4,7 @@
 
 const words = [
   // Università e Esami
-  "Esame orale", "Appello", "Verbalizzazione", "CFU", "Professore", 
+  "Esame orale", "Appello", "Verbalizzazione", "CFU", 
   "Assistente", "Relatore", "Commissione", "Bocciatura", "Lode", 
   "Tirocinio", "Appunti", "Biblioteca", "Aula magna", "Fuoricorso", 
   "Laurea", "Tesi", "Sessione estiva", "Piano di studi", "Media pesata", 
