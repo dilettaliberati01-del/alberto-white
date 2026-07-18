@@ -317,11 +317,12 @@ function renderLobby(room) {
 // ── REVEAL STATUS ─────────────────────────────
 function renderRevealStatus(room) {
   if (S.screen !== 'reveal') return;
-  const n = room.readyCount;
-  const t = room.players.length;
+  const connected = room.players.filter(p => p.connected);
+  const n = connected.filter(p => p.ready).length;
+  const t = connected.length;
   $('lbl-ready').textContent    = n;
   $('lbl-ready-of').textContent = t;
-  $('prog-fill').style.width    = `${(n / t) * 100}%`;
+  $('prog-fill').style.width    = t > 0 ? `${(n / t) * 100}%` : '0%';
 }
 
 // ── DISCUSSION ────────────────────────────────
