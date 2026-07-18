@@ -51,6 +51,7 @@ function pub(room) {
       ready: p.ready,
       clues: p.clues,
       hasVoted: !!room.votes[p.id],
+      connected: p.connected !== false,
     })),
     currentPlayerIndex: room.currentPlayerIndex,
     category: room.category,
@@ -76,7 +77,7 @@ function broadcast(code) {
 io.on('connection', (socket) => {
 
   // ── CREATE ROOM ──────────────────────────────────────
-  socket.on('create-room', ({ playerName }) => {
+  socket.on('create-room', ({ playerName, playerId }) => {
     const name = (playerName || '').trim().substring(0, 20);
     if (!name) return socket.emit('error', { message: 'Nome non valido!' });
 
@@ -84,7 +85,7 @@ io.on('connection', (socket) => {
     rooms[code] = {
       code,
       phase: 'lobby',
-      players: [{ id: socket.id, name, isHost: true, eliminated: false, ready: false, clues: [] }],
+      players: [{ id: socket.id, playerId, name, isHost: true, eliminated: false, ready: false, clues: [], connected: true }],
       currentPlayerIndex: 0,
       category: null,
       categoryName: null,
@@ -103,7 +104,7 @@ io.on('connection', (socket) => {
   });
 
   // ── JOIN ROOM ────────────────────────────────────────
-  socket.on('join-room', ({ roomCode, playerName }) => {
+  socket.on('join-room', ({ roomCode, playerName, playerId }) => {
     const name = (playerName || '').trim().substring(0, 20);
     if (!name) return socket.emit('error', { message: 'Nome non valido!' });
 
@@ -111,16 +112,45 @@ io.on('connection', (socket) => {
     const room = rooms[code];
 
     if (!room)                         return socket.emit('error', { message: 'Stanza non trovata! Controlla il codice.' });
+    
+    // Allow reconnect if player already exists
+    const existing = room.players.find(p => p.playerId === playerId);
+    if (existing) {
+      existing.id = socket.id;
+      existing.name = name;
+      existing.connected = true;
+      socket.join(code);
+      socket.emit('room-joined', { code });
+      broadcast(code);
+      console.log(`[+] ${name} reconnected to ${code}`);
+      return;
+    }
+
     if (room.phase !== 'lobby')        return socket.emit('error', { message: 'Partita già iniziata!' });
     if (room.players.length >= 12)     return socket.emit('error', { message: 'Stanza piena (max 12).' });
     if (room.players.find(p => p.name.toLowerCase() === name.toLowerCase()))
                                        return socket.emit('error', { message: 'Nome già in uso!' });
 
-    room.players.push({ id: socket.id, name, isHost: false, eliminated: false, ready: false, clues: [] });
+    room.players.push({ id: socket.id, playerId, name, isHost: false, eliminated: false, ready: false, clues: [], connected: true });
     socket.join(code);
     socket.emit('room-joined', { code });
     broadcast(code);
     console.log(`[+] ${name} joined ${code}`);
+  });
+
+  // ── RESTORE SESSION ──────────────────────────────────
+  socket.on('restore-session', ({ roomCode, playerId }) => {
+    const room = rooms[roomCode];
+    if (!room) return;
+    const p = room.players.find(p => p.playerId === playerId);
+    if (p) {
+      p.id = socket.id;
+      p.connected = true;
+      socket.join(roomCode);
+      socket.emit('session-restored', { code: roomCode });
+      broadcast(roomCode);
+      console.log(`[+] Restored session for ${p.name} in ${roomCode}`);
+    }
   });
 
   // ── START GAME ───────────────────────────────────────
@@ -409,16 +439,21 @@ io.on('connection', (socket) => {
     if (!r) return;
     const { code, room } = r;
 
-    const leaving = room.players.find(p => p.id === socket.id);
-    room.players = room.players.filter(p => p.id !== socket.id);
-    console.log(`[-] ${leaving?.name} left ${code}`);
+    const p = room.players.find(p => p.id === socket.id);
+    if (p) {
+      p.connected = false;
+      console.log(`[-] ${p.name} disconnected from ${code}`);
+    }
 
-    if (room.players.length === 0) { delete rooms[code]; return; }
-    if (!room.players.find(p => p.isHost)) room.players[0].isHost = true;
-
-    // Fix currentPlayerIndex if out of range
-    const active = room.players.filter(p => !p.eliminated);
-    if (room.currentPlayerIndex >= active.length) room.currentPlayerIndex = 0;
+    // Clean up completely empty rooms after everyone is disconnected
+    if (room.players.every(p => !p.connected)) {
+      setTimeout(() => {
+        if (rooms[code] && rooms[code].players.every(p => !p.connected)) {
+          delete rooms[code];
+          console.log(`[!] Room ${code} deleted (empty)`);
+        }
+      }, 10000); // 10 seconds grace period
+    }
 
     broadcast(code);
   });
