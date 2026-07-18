@@ -324,72 +324,33 @@ function renderRevealStatus(room) {
   $('prog-fill').style.width    = `${(n / t) * 100}%`;
 }
 
-// ── CLUES ──────────────────────────────────────
-function renderClues(room) {
-  if (S.screen !== 'clues') {
-    setScreen('clues');
-    S.hasVoted = false;
+// ── DISCUSSION ────────────────────────────────
+function renderDiscussion(room) {
+  if (S.screen !== 'discussion') {
+    setScreen('discussion');
   }
 
-  const active   = room.players.filter(p => !p.eliminated);
-  const cur      = active[room.currentPlayerIndex];
-  const isMyTurn = cur?.id === S.myId;
+  const active = room.players.filter(p => !p.eliminated);
+  
+  $('disc-my-word').textContent = S.isMrWhite ? '🕵️ Mr. White' : (S.myWord || 'Cittadino');
 
-  $('chip-round').textContent = `Round ${room.roundNumber}`;
-  $('chip-cat').textContent   = room.categoryName || '';
+  // Show active players
+  const strip = $('disc-players-strip');
+  strip.innerHTML = active.map(p => `
+    <div class="strip-player ${!p.connected ? 'offline' : ''}">
+      <div class="strip-ava" style="box-shadow: 0 0 0 2px var(--amber)">${ava(p.name)}</div>
+      <div class="strip-pname" style="font-weight: 800">${escHtml(p.name)}</div>
+    </div>
+  `).join('');
 
-  const turnCard = $('turn-card');
-  turnCard.className = 'turn-card' + (isMyTurn ? ' my-turn' : '');
-  $('turn-sub').textContent  = isMyTurn ? '🎯 È il tuo turno!' : 'Sta parlando';
-  $('turn-name').textContent = cur?.name || '---';
-
-  if (isMyTurn) {
-    show('my-clue-panel');
-    $('my-word-val').textContent = S.myWord || '???';
-    setTimeout(() => $('inp-clue').focus(), 100);
+  if (S.isHost) {
+    show('disc-host-panel');
+    hide('disc-guest-panel');
+    $('btn-disc-vote-now').onclick = () => socket.emit('start-voting', { roomCode: S.roomCode });
   } else {
-    hide('my-clue-panel');
+    hide('disc-host-panel');
+    show('disc-guest-panel');
   }
-
-  if (S.isHost) { show('host-vote-panel'); show('btn-force-vote'); }
-  else          { hide('host-vote-panel'); hide('btn-force-vote'); }
-
-  // Players strip
-  const strip = $('players-strip');
-  strip.innerHTML = active.map((p, i) => {
-    const isCur = i === room.currentPlayerIndex;
-    const isMe  = p.id === S.myId;
-    return `
-      <div class="strip-player ${isCur ? 'current' : ''} ${p.eliminated ? 'eliminated' : ''}">
-        <div class="strip-ava">${ava(p.name)}</div>
-        <div class="strip-pname">${escHtml(p.name)}${isMe ? ' ★' : ''}</div>
-      </div>
-    `;
-  }).join('');
-
-  // Clue log
-  const allClues = [];
-  room.players.forEach(p => {
-    (p.clues || []).forEach(c => allClues.push({ ...c, pname: p.name }));
-  });
-  const log = $('clue-log');
-  if (allClues.length === 0) {
-    log.innerHTML = '<p class="muted small text-center">Nessun indizio ancora...</p>';
-  } else {
-    log.innerHTML = allClues.map(c => `
-      <div class="clue-entry">
-        <div class="clue-ava">${ava(c.pname)}</div>
-        <div class="clue-body">
-          <div class="clue-who">${escHtml(c.pname)}</div>
-          <div class="clue-text">${escHtml(c.text)}</div>
-        </div>
-        <span class="clue-r">R${c.round}</span>
-      </div>
-    `).join('');
-    log.scrollTop = log.scrollHeight;
-  }
-
-  resetTimer(15);
 }
 
 // ── VOTING ─────────────────────────────────────
@@ -423,12 +384,10 @@ function renderVoting(room) {
 
     const btn = document.createElement('button');
     btn.className = 'vote-btn';
-    const clueCount = (p.clues || []).length;
     btn.innerHTML = `
       <div class="vote-ava">${ava(p.name)}</div>
       <div style="flex:1">
         <div class="vote-name">${escHtml(p.name)}</div>
-        <div class="vote-clues">${clueCount} indiz${clueCount === 1 ? 'io' : 'i'} dat${clueCount === 1 ? 'o' : 'i'}</div>
       </div>
       <span class="vote-arrow">→</span>
     `;
@@ -454,7 +413,6 @@ function renderVoteResult(data) {
 
   if (data.wasImpostor) {
     if (data.partialCatch) {
-      // A Mr. White caught but more remain
       wrap.innerHTML = `
         <div class="result-card bad">
           <span class="result-emoji">😱</span>
@@ -467,7 +425,6 @@ function renderVoteResult(data) {
       `;
       if (S.isHost) show('continue-panel');
     } else {
-      // Last Mr. White caught — guess phase
       wrap.innerHTML = `
         <div class="result-card good">
           <span class="result-emoji">🎉</span>
@@ -477,7 +434,6 @@ function renderVoteResult(data) {
       `;
     }
   } else {
-    // Innocent eliminated
     wrap.innerHTML = `
       <div class="result-card bad">
         <span class="result-emoji">😬</span>
@@ -498,12 +454,10 @@ function renderVoteResult(data) {
 function renderMrWhiteGuessScreen(room) {
   if (S.screen !== 'guess') setScreen('guess');
 
-  // The guesser is the last eliminated Mr. White
   const guesserName = room.players.find(p => p.isMrWhite && p.eliminated)?.name
     || (room.mrWhiteNames && room.mrWhiteNames[0]) || 'Mr. White';
   $('guess-name').textContent = guesserName;
 
-  // Is THIS player the designated guesser?
   const guesserIds = room.mrWhiteIds || [];
   const amGuesser  = S.isMrWhite && guesserIds.includes(S.myId) &&
     room.players.find(p => p.id === S.myId)?.eliminated;
