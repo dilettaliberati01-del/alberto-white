@@ -240,19 +240,26 @@ io.on('connection', (socket) => {
     broadcast(roomCode);
   });
 
-  // ── SUBMIT VOTE ──────────────────────────────────────
+   // ── SUBMIT VOTE ──────────────────────────────────────
   socket.on('submit-vote', ({ roomCode, targetId }) => {
     const room = rooms[roomCode];
     if (!room || room.phase !== 'voting') return;
     const me = room.players.find(p => p.id === socket.id);
-    if (!me || me.eliminated || room.votes[socket.id]) return;
-
-    const target = room.players.find(p => p.id === targetId && !p.eliminated);
-    if (!target) return;
-
-    room.votes[socket.id] = targetId;
+    if (!me || me.eliminated) return;
 
     const active = room.players.filter(p => !p.eliminated && p.connected);
+
+    if (targetId === 'FORCE' && me.isHost) {
+      active.forEach(p => {
+        if (!room.votes[p.id]) room.votes[p.id] = active[Math.floor(Math.random() * active.length)].id;
+      });
+    } else {
+      if (room.votes[socket.id]) return;
+      const target = room.players.find(p => p.id === targetId && !p.eliminated);
+      if (!target) return;
+      room.votes[socket.id] = targetId;
+    }
+
     const allVoted = active.length > 0 && active.every(p => room.votes[p.id]);
 
     broadcast(roomCode);
