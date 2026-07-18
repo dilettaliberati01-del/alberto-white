@@ -221,7 +221,7 @@ io.on('connection', (socket) => {
 
     // Auto-start discussion phase when everyone connected is ready
     const connectedPlayers = room.players.filter(p => p.connected);
-    if (connectedPlayers.length > 0 && connectedPlayers.every(p => p.ready)) {
+    if (me.isHost || (connectedPlayers.length > 0 && connectedPlayers.every(p => p.ready))) {
       room.phase = 'discussion';
     }
 
@@ -252,8 +252,8 @@ io.on('connection', (socket) => {
 
     room.votes[socket.id] = targetId;
 
-    const active = room.players.filter(p => !p.eliminated);
-    const allVoted = active.every(p => room.votes[p.id]);
+    const active = room.players.filter(p => !p.eliminated && p.connected);
+    const allVoted = active.length > 0 && active.every(p => room.votes[p.id]);
 
     broadcast(roomCode);
 
